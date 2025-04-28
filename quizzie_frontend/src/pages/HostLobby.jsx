@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client';
 
 function HostLobby() {
   const { quizCode } = useParams();
@@ -29,20 +31,30 @@ function HostLobby() {
 
   const startQuiz = async () => {
     try {
-      const response = await fetch(`http://localhost:8080/api/quiz/start/${quizCode}`, {
+      // Update database (optional)
+      await fetch(`http://localhost:8080/api/quiz/start/${quizCode}`, {
         method: 'POST',
       });
-      if (response.ok) {
-        navigate(`/play-quiz/${quizCode}`, { state: { name: state.name } });
-      } else {
-        alert('Failed to start quiz.');
-      }
+  
+      // Now send WebSocket event
+      const socket = new SockJS('http://localhost:8080/ws');
+      const client = new Client({
+        webSocketFactory: () => socket,
+        debug: (str) => console.log(str),
+        onConnect: () => {
+          client.publish({ destination: '/app/startQuiz', body: '' });
+        }
+      });
+  
+      client.activate();
+  
+      navigate(`/play-quiz/${quizCode}`, { state: { name: state.name } });
     } catch (error) {
       console.error('Error starting quiz:', error);
       alert('Error starting quiz.');
     }
   };
-
+  
   useEffect(() => {
     fetchParticipants();
 
