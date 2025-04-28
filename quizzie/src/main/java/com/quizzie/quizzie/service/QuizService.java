@@ -23,7 +23,6 @@ public class QuizService {
 
         ApiFuture<com.google.cloud.firestore.WriteResult> result = docRef.set(quiz);
 
-        // Optional: wait for write complete
         result.get();
 
         return quizCode;

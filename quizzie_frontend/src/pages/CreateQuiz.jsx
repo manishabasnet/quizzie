@@ -1,24 +1,15 @@
-// function StartQuiz() {
-//     return (
-//       <div style={{ padding: "2rem", textAlign: "center" }}>
-//         <h1>Start a New Quiz</h1>
-//         <p>Host a quiz for your friends!</p>
-//       </div>
-//     );
-//   }
-  
-//   export default StartQuiz;
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 function CreateQuiz() {
   const [quizTitle, setQuizTitle] = useState('');
   const [quizDescription, setQuizDescription] = useState('');
-  const [timePerQuestion, setTimePerQuestion] = useState(30); // default 30 seconds
+  const [timePerQuestion, setTimePerQuestion] = useState(30);
   const [questions, setQuestions] = useState([
     { questionText: '', options: ['', '', '', ''], correctAnswer: '' }
   ]);
+  const [quizCode, setQuizCode] = useState('');
+  const navigate = useNavigate();
 
   const handleQuestionChange = (index, field, value) => {
     const updatedQuestions = [...questions];
@@ -53,17 +44,25 @@ function CreateQuiz() {
     try {
       const response = await fetch('http://localhost:8080/api/quiz/create', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(quizData)
       });
 
       if (response.ok) {
         const data = await response.text();
-        alert('Quiz created successfully! Quiz Code: ' + data);
-        //navigate to dashboard page
-        navigate('/');
+        setQuizCode(data);
+
+        // Also create participant DB
+        await fetch('http://localhost:8080/api/quiz/create-participants', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quizCode: data,
+            host: '',
+            participants: {}
+          })
+        });
+
       } else {
         alert('Failed to create quiz');
       }
@@ -73,14 +72,25 @@ function CreateQuiz() {
     }
   };
 
-  const navigate = useNavigate();
+  if (quizCode) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center' }}>
+        <h2>Quiz Created Successfully!</h2>
+        <h3>Share this Code:</h3>
+        <div style={{ fontSize: '2rem', margin: '1rem' }}>{quizCode}</div>
+
+        <button onClick={() => navigate('/join')} style={{ padding: '1rem 2rem', marginTop: '2rem' }}>
+          Go to Join Page
+        </button>
+      </div>
+    );
+  }
 
   return (
     <div style={{ padding: '2rem' }}>
       <h1>Create New Quiz</h1>
 
       <form onSubmit={handleSubmit}>
-
         <div style={{ marginBottom: '1rem' }}>
           <input
             type="text"
@@ -156,13 +166,9 @@ function CreateQuiz() {
         <button type="submit" style={{ padding: '1rem 2rem' }}>
           Submit Quiz
         </button>
-
       </form>
     </div>
   );
 }
 
 export default CreateQuiz;
-
-  
-  
