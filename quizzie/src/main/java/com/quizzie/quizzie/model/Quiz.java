@@ -8,8 +8,6 @@ public class Quiz {
     private int timePerQuestion;
     private List<Question> questions;
 
-    // getters and setters
-
     public String getTitle() {
         return title;
     }

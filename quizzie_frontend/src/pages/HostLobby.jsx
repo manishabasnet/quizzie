@@ -1,13 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 function HostLobby() {
   const { quizCode } = useParams();
-  const { state } = useLocation();
+  const { state } = useLocation(); // host's name
   const navigate = useNavigate();
-  
+
   const [participants, setParticipants] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -31,34 +29,21 @@ function HostLobby() {
 
   const startQuiz = async () => {
     try {
-      // Update database (optional)
       await fetch(`http://localhost:8080/api/quiz/start/${quizCode}`, {
         method: 'POST',
       });
-  
-      // Now send WebSocket event
-      const socket = new SockJS('http://localhost:8080/ws');
-      const client = new Client({
-        webSocketFactory: () => socket,
-        debug: (str) => console.log(str),
-        onConnect: () => {
-          client.publish({ destination: '/app/startQuiz', body: '' });
-        }
-      });
-  
-      client.activate();
-  
-      navigate(`/play-quiz/${quizCode}`, { state: { name: state.name } });
+
+      // Move host to "play" page
+      navigate(`/host-play-quiz/${quizCode}`, { state: { name: state.name } });
     } catch (error) {
       console.error('Error starting quiz:', error);
       alert('Error starting quiz.');
     }
   };
-  
+
   useEffect(() => {
     fetchParticipants();
-
-    const interval = setInterval(fetchParticipants, 5000); // Poll every 5 seconds
+    const interval = setInterval(fetchParticipants, 5000); // Refresh participants every 5 seconds
     return () => clearInterval(interval);
   }, []);
 

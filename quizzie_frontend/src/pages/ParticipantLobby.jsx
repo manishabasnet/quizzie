@@ -1,7 +1,5 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { Client } from '@stomp/stompjs';
-import SockJS from 'sockjs-client';
 
 function ParticipantLobby() {
   const { quizCode } = useParams();
@@ -9,8 +7,8 @@ function ParticipantLobby() {
   const navigate = useNavigate();
   
   const [participants, setParticipants] = useState([]);
+  const [started, setStarted] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [stompClient, setStompClient] = useState(null);
 
   const fetchParticipants = async () => {
     try {
@@ -23,44 +21,37 @@ function ParticipantLobby() {
       }
     } catch (error) {
       console.error('Error fetching participants:', error);
-    } finally {
-      setLoading(false);
+    }
+  };
+
+  const fetchQuizStatus = async () => {
+    try {
+      const response = await fetch(`http://localhost:8080/api/quiz/status/${quizCode}`);
+      if (response.ok) {
+        const data = await response.json();
+        setStarted(data.started);
+      }
+    } catch (error) {
+      console.error('Error checking quiz status:', error);
     }
   };
 
   useEffect(() => {
     fetchParticipants();
+    fetchQuizStatus();
 
-    const interval = setInterval(fetchParticipants, 5000);
+    const interval = setInterval(() => {
+      fetchParticipants();
+      fetchQuizStatus();
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
-    const socket = new SockJS('http://localhost:8080/ws'); // your websocket endpoint
-    const client = new Client({
-      webSocketFactory: () => socket,
-      debug: (str) => {
-        console.log(str);
-      },
-      onConnect: () => {
-        console.log('Connected to WebSocket');
-        client.subscribe('/topic/quizStarted', (message) => {
-          console.log('Received quiz start event');
-          navigate(`/play-quiz/${quizCode}`, { state: { name: state.name } });
-        });
-      },
-      onDisconnect: () => {
-        console.log('Disconnected from WebSocket');
-      }
-    });
-
-    client.activate();
-    setStompClient(client);
-
-    return () => {
-      client.deactivate();
-    };
-  }, [navigate, quizCode, state.name]);
+    if (started) {
+      navigate(`/play-quiz/${quizCode}`, { state: { name: state.name } });
+    }
+  }, [started, navigate, quizCode, state.name]);
 
   if (loading) {
     return <div style={{ textAlign: 'center', marginTop: '2rem' }}>Loading...</div>;

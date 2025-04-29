@@ -7,8 +7,6 @@ public class Question {
     private List<String> options;
     private String correctAnswer;
 
-    // getters and setters
-
     public String getQuestionText() {
         return questionText;
     }
